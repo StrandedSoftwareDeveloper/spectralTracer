@@ -1,8 +1,29 @@
 const std = @import("std");
+const vec = @import("vector.zig");
 const c = @cImport({
     @cInclude("stb_image_write.h");
     @cInclude("stb_image.h");
 });
+
+pub const Ray = struct {
+    orig: vec.Vector3,
+    dir: vec.Vector3,
+
+    pub fn at(r: Ray, t: f64) vec.Vector3 {
+        return r.dir.multScalar(t).add(r.orig);
+    }
+};
+
+pub const Camera = struct {
+    focalLength: f64,
+    pos: vec.Vector3,
+
+    pub fn calcRay(cam: Camera, u: f64, v: f64) Ray {
+        var rayDir: vec.Vector3 = .{.x = u*2.0-1.0, .y = v*2.0-1.0, .z = cam.focalLength};
+        rayDir = rayDir.normalize();
+        return .{.orig = cam.pos, .dir = rayDir};
+    }
+};
 
 pub const Image = struct {
     data: []u8,
