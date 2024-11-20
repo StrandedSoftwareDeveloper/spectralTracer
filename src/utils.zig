@@ -71,7 +71,29 @@ pub const Image = struct {
 };
 
 //Uniformly distributed float between -1.0 and 1.0
-pub fn randomFloat(rng: std.Random, sample: usize) f64 {
-    _ = sample;
+pub fn randomFloat(rng: std.Random) f64 {
     return rng.float(f64) * 2.0 - 1.0;
+}
+
+//Rather stupid way of generating a random direction: Generate a random vector, and if it's outside of the unit sphere, try again
+pub fn randomUnitVector(rng: std.Random) vec.Vector3 {
+    var out: vec.Vector3 = vec.Vector3.zero();
+    while (true) {
+        out.x = randomFloat(rng);
+        out.y = randomFloat(rng);
+        out.z = randomFloat(rng);
+
+        if (out.length2() <= 1.0) {
+            return out.normalize();
+        }
+    }
+}
+
+//Similarly stupid way of generating a random vector in a hemisphere: Generate a random direction, and if it's not in the hemisphere, try again
+pub fn randomHemisphereVector(rng: std.Random, normal: vec.Vector3) vec.Vector3 {
+    var out: vec.Vector3 = randomUnitVector(rng);
+    while (normal.dot(out) < 0.0) {
+        out = randomUnitVector(rng);
+    }
+    return out;
 }

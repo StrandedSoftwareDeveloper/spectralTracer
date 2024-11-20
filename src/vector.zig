@@ -101,6 +101,14 @@ pub const Vector3 = struct {
         return .{ .x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z };
     }
 
+    pub fn mul(a: Vector3, b: Vector3) Vector3 {
+        return .{ .x = a.x * b.x, .y = a.y * b.y, .z = a.z * b.z };
+    }
+
+    pub fn div(a: Vector3, b: Vector3) Vector3 {
+        return .{ .x = a.x / b.x, .y = a.y / b.y, .z = a.z / b.z };
+    }
+
     pub fn cross(a: Vector3, b: Vector3) Vector3 {
         return .{
             .x = a.y * b.z - a.z * b.y,
