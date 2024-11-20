@@ -69,3 +69,9 @@ pub const Image = struct {
         c.stbi_image_free(self.data.ptr);
     }
 };
+
+//Uniformly distributed float between -1.0 and 1.0
+pub fn randomFloat(rng: std.Random, sample: usize) f64 {
+    _ = sample;
+    return rng.float(f64) * 2.0 - 1.0;
+}
