@@ -6,12 +6,24 @@ const c = @cImport({
     @cInclude("stb_image.h");
 });
 
+const Sphere = struct {
+    center: vec.Vector3,
+    radius: f64,
+    emissive: bool,
+};
+
+const HitRecord = struct {
+    hit: bool,
+    t: f64,
+    objIndex: usize,
+};
+
 //Adapted from https://iquilezles.org/articles/intersectors/
 // sphere of size ra centered at point ce
-fn raySphereIntersect(r: utils.Ray, ce: vec.Vector3, ra: f64) f64 {
-    const oc: vec.Vector3 = r.orig.sub(ce);
+fn raySphereIntersect(r: utils.Ray, sph: Sphere) f64 {
+    const oc: vec.Vector3 = r.orig.sub(sph.center);
     const b: f64 = vec.Vector3.dot(oc, r.dir);
-    const cl: f64 = vec.Vector3.dot(oc, oc) - ra*ra;
+    const cl: f64 = vec.Vector3.dot(oc, oc) - sph.radius*sph.radius;
     var h: f64 = b*b - cl;
     if (h < 0.0) { // no intersection
         return -1.0;
@@ -21,26 +33,50 @@ fn raySphereIntersect(r: utils.Ray, ce: vec.Vector3, ra: f64) f64 {
     return -b-h;
 }
 
+fn raySceneIntersect(r: utils.Ray, scene: []const Sphere) HitRecord {
+    var hit: HitRecord = .{.hit = false, .t = 9999999999.0, .objIndex = 0};
+    
+    for (0..scene.len) |i| {
+        const sphere: Sphere = scene[i];
+        const t: f64 = raySphereIntersect(r, sphere);
+        if (t >= 0.0) { //Hit
+            hit.hit = true;
+            if (t < hit.t) {
+                hit.t = t;
+                hit.objIndex = i;
+            }
+        }
+    }
+    
+    return hit;
+}
+
 fn calcSampleColor(cam: utils.Camera, rng: std.Random, u: f64, v: f64, sample: usize, maxBounces: usize) vec.Vector3 {
     _ = sample;
-    const sunPos: vec.Vector3 = .{.x = 2.0, .y = 0.0, .z = 0.0};
+    const sun: Sphere = .{.center = .{.x = 2.0, .y = 0.0, .z = 0.0}, .radius = 1.0, .emissive = true};
+    const planet: Sphere = .{.center = .{.x = 0.0, .y = 0.0, .z = 2.0}, .radius = 1.0, .emissive = false};
+    const scene: []const Sphere = &[_]Sphere{
+        sun,
+        planet,
+    };
+    
     var ray: utils.Ray = cam.calcRay(u, v);
     var color: vec.Vector3 = .{.x = 10.0, .y = 10.0, .z = 10.0};
 
     for (0..maxBounces) |i| {
         _ = i;
-        const t: f64 = raySphereIntersect(ray, .{.x = 0.0, .y = 0.0, .z = 2.0}, 1.0);
-        if (t < 0.0) {
-            if (raySphereIntersect(ray, sunPos, 1.0) < 0.0) { //The sun
-                return .{.x = 0.0, .y = 0.0, .z = 0.0};
-            }
-
+        const hit: HitRecord = raySceneIntersect(ray, scene);
+        if (!hit.hit) {
+            return .{.x = 0.0, .y = 0.0, .z = 0.0};
+        }
+        
+        if (scene[hit.objIndex].emissive) {
             return color;
         }
 
-        ray.orig = ray.at(t - 0.01);
+        ray.orig = ray.at(hit.t - 0.01);
 
-        const normal: vec.Vector3 = vec.Vector3.sub(ray.orig, .{.x = 0.0, .y = 0.0, .z = 2.0}).normalize();
+        const normal: vec.Vector3 = vec.Vector3.sub(ray.orig, scene[hit.objIndex].center).normalize();
         ray.dir = utils.randomHemisphereVector(rng, normal);
         color = color.mul(.{.x = 0.2, .y = 0.05, .z = 0.05});
     }
@@ -84,7 +120,9 @@ pub fn main() !void {
     const rng: std.Random = pcg.random();
 
     const camera: utils.Camera = .{.focalLength = 1.0, .pos = vec.Vector3.zero()};
-    render(out, camera, rng, 10, 10);
+    std.debug.print("Rendering...\n", .{});
+    render(out, camera, rng, 16, 10);
+    std.debug.print("Done!\n", .{});
 
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);

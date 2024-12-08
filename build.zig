@@ -43,9 +43,9 @@ pub fn build(b: *std.Build) void {
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     exe.linkLibC();
-    exe.addIncludePath(.{ .path = "include/" });
-    exe.addCSourceFile(.{ .file = .{ .path = "src/stb_image_impl.c" } });
-    exe.addCSourceFile(.{ .file = .{ .path = "src/stb_image_write_impl.c" } });
+    exe.addIncludePath(.{ .cwd_relative = "include/" });
+    exe.addCSourceFile(.{ .file = .{ .cwd_relative = "src/stb_image_impl.c" } });
+    exe.addCSourceFile(.{ .file = .{ .cwd_relative = "src/stb_image_write_impl.c" } });
     b.installArtifact(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another
